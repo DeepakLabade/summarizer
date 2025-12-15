@@ -1,17 +1,21 @@
+'use client'
 import { FileText } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import NavLink from "./nav-link";
 import { signinAction } from "@/actions/auth-action";
 import { Button } from "../ui/button";
+import { useSession } from "next-auth/react";
 
 const Header = () => {
     const isLoggedIn = false
+    const session = useSession()
 
   return (
     <>
       <nav className="container flex items-center justify-between py-4 lg:px-8 px-2 mx-auto">
         <div className="flex lg:flex-1">
+          {/* {JSON.stringify(session.data?.user.id)} */}
           <Link
             href={"/"}
             className="flex items-center gap-1 lg:gap-2 shrink-0"
