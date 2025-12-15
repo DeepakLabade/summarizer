@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { z } from "zod";
 import { UploadButton } from "@/app/utils/uploadthing";
 import { toast } from "sonner";
+import { generateSummary } from "@/actions/upload-action";
 
 const schema = z.object({
   file: z
@@ -70,8 +71,10 @@ const UploadForm = () => {
       {/* <UploadFormInput onSubmit={handleSubmit} /> */}
       <UploadButton
         endpoint="pdfUploader"
-        onClientUploadComplete={(res) => {
-          console.log("Files: ", res);
+        onClientUploadComplete={async (res) => {
+          console.log("Files: ", res[0].serverData);
+          const summary = await generateSummary([{ serverData: res[0].serverData }])
+          console.log("summary: " + summary)
           toast("upload completed");
         }}
         onUploadError={(error: Error) => {

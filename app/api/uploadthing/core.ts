@@ -1,26 +1,25 @@
-import { auth } from "@/auth";
-import { createUploadthing, type FileRouter } from "uploadthing/next";
-import { UploadThingError } from "uploadthing/server";
+import { auth } from "@/auth"
+import { createUploadthing, type FileRouter } from "uploadthing/next"
+import { UploadThingError } from "uploadthing/server"
 
-const f = createUploadthing();
+const f = createUploadthing()
 
 export const ourFileRouter = {
-  pdfUploader: f({ pdf: { maxFileSize: "32MB" } })
-    .middleware(async ({ req }) => {
-      const session = await auth();
-      console.log("session: " + session);
+    pdfUploader: f({ pdf: { maxFileSize: '32MB' } }).middleware(async ({ req }) => {
+      const session = await auth()
+      console.log("session: " + session)
 
-      if (!session) throw new UploadThingError("unauthorized");
+        if (!session) throw new UploadThingError('unauthorized')
 
-      console.log(session.user);
-      return { userId: session.user?.id };
+      console.log(session.user)
+        return {userId: session.user?.id} 
+    }).onUploadComplete(async ({ metadata, file }) => {
+        console.log('upload completed for user id', metadata.userId);
+        console.log('file url', file.ufsUrl)
+
+        return {userId: metadata.userId, file: {url: file.ufsUrl, name: file.name}}
     })
-    .onUploadComplete(async ({ metadata, file }) => {
-      console.log("upload completed for user id", metadata.userId);
-      console.log("file url", file.ufsUrl);
+} satisfies FileRouter
 
-      return { userId: metadata.userId, file: file.ufsUrl };
-    }),
-} satisfies FileRouter;
+export type OurFileRouter = typeof ourFileRouter
 
-export type OurFileRouter = typeof ourFileRouter;
