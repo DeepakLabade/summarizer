@@ -6,7 +6,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { z } from "zod";
 import { UploadButton } from "@/app/utils/uploadthing";
 import { toast } from "sonner";
-import { generateSummary } from "@/actions/upload-action";
+import { generateSummary, storePDFSummary } from "@/actions/upload-action";
+import { useRouter } from "next/router";
 
 const schema = z.object({
   file: z
@@ -20,6 +21,8 @@ const schema = z.object({
 });
 
 const UploadForm = () => {
+
+  const router = useRouter()
 //   const { startUpload, routeConfig } = useUploadThing("pdfUploader", {
 //     onClientUploadComplete: (res: any) => {
 //       alert("Uploaded successfully!");
@@ -74,12 +77,16 @@ const UploadForm = () => {
         onClientUploadComplete={async (res) => {
           console.log("Files: ", res[0].serverData);
           toast("upload completed");
+          console.log("just to chech: " + res)
           const summary = await generateSummary([{ serverData: res[0].serverData }])
           console.log("summary: " + summary)
           //@ts-ignore
           const {data = null, message = null} = summary || {}
           if (data) {
-            toast("Saving PDF...")
+            toast("Saving PDF...") //@ts-ignore
+            const storeResult = await storePDFSummary({summary: summary?.data?.summary, fileName: res[0].serverData.file.name,fileUrl: res[0].serverData.file.url,title:summary?.data?.title});
+            toast("summary saved")
+            router.push(`/summaries/${storeResult.data?.id}`)
           }
         }}
         onUploadError={(error: Error) => {

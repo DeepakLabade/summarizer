@@ -25,11 +25,11 @@ export const generateSummaryFromGemini = async (
         )}`
       );
 
-      console.log("✅ Summary generated successfully");
+      console.log("Summary generated successfully");
       return result.response.text();
     } catch (err: any) {
       lastError = err;
-      console.error(`❌ Attempt ${attempt} failed:`, err.message);
+      console.error(`Attempt ${attempt} failed:`, err.message);
 
       const isRetryable =
         err.status === 503 ||
