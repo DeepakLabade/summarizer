@@ -73,9 +73,14 @@ const UploadForm = () => {
         endpoint="pdfUploader"
         onClientUploadComplete={async (res) => {
           console.log("Files: ", res[0].serverData);
+          toast("upload completed");
           const summary = await generateSummary([{ serverData: res[0].serverData }])
           console.log("summary: " + summary)
-          toast("upload completed");
+          //@ts-ignore
+          const {data = null, message = null} = summary || {}
+          if (data) {
+            toast("Saving PDF...")
+          }
         }}
         onUploadError={(error: Error) => {
           toast.error(`ERROR! ${error.message}`);

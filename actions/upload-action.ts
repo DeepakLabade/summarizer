@@ -1,5 +1,6 @@
 'use server'
 
+import { generateSummaryFromGemini } from "@/app/utils/gemini";
 import { fetchAndExtractPdfText } from "@/app/utils/langchain";
 
 export async function generateSummary(uploadResponse: [{
@@ -39,7 +40,20 @@ export async function generateSummary(uploadResponse: [{
     try {
         console.log("entered here")
         const pdfText = await fetchAndExtractPdfText(pdfUrl)
-        console.log("pdfText: " + pdfText)
+        // console.log("pdfText: " + pdfText)
+        let summary;
+        try {
+            summary = generateSummaryFromGemini(pdfText)
+            if (!summary) {
+                console.log('some error occured')
+                return
+            }
+
+            return summary
+        } catch (error) {
+            console.log('some error occured: ', error)
+            return
+        }
     } catch (error) {
         console.log("some error occured: " + error);
         return {
