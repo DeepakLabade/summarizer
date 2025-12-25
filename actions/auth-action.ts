@@ -1,7 +1,7 @@
 'use server';
 
-import { signIn } from "@/auth";
+import signIn  from "next-auth";
 
-export async function signinAction() {
-    await signIn("google", {redirectTo: "/loggedin"})
+export async function signinAction() { //@ts-ignore
+    await signIn("google")
 }

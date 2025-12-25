@@ -11,7 +11,6 @@ export async function generateSummary(
   uploadResponse: [
     {
       serverData: {
-        userId: string;
         file: {
           url: string;
           name: string;
@@ -20,18 +19,15 @@ export async function generateSummary(
     }
   ]
 ) {
-  if (!uploadResponse) {
+  if (!uploadResponse || !uploadResponse[0]) {
     return {
       success: false,
-      status: "bad",
-      msg: "file upload failed, uploadResponse required",
-      data: null,
+      msg: "Invalid upload response",
     };
   }
 
   const {
     serverData: {
-      userId,
       file: { url: pdfUrl, name: fileName },
     },
   } = uploadResponse[0];
@@ -39,120 +35,67 @@ export async function generateSummary(
   if (!pdfUrl) {
     return {
       success: false,
-      status: "bad",
-      msg: "file upload failed, pdfUrl required",
-      data: null,
+      msg: "PDF URL missing",
+    };
+  }
+
+  const session = await auth();
+  console.log(session?.user)
+
+  if (!session?.user?.id) {
+    return {
+      success: false,
+      msg: "User not authenticated",
     };
   }
 
   try {
-    console.log("Extracting PDF text...");
+    console.log("📄 Extracting PDF text...");
     const pdfText = await fetchAndExtractPdfText(pdfUrl);
 
-    console.log("Generating summary...");
-    // ✅ FIX: Added await here
+    console.log("🤖 Generating summary...");
     const summary = await generateSummaryFromGemini(pdfText);
 
     if (!summary) {
-      console.error("Summary generation failed");
       return {
         success: false,
-        status: "error",
         msg: "Failed to generate summary",
-        data: null,
       };
     }
 
-    const formattedFileName = await formatFileNameasTitle(fileName);
+    const title = await formatFileNameasTitle(fileName);
 
-    // ✅ OPTIONAL: Save to database here
-    try {
-      await storePDFSummary({
-        title: formattedFileName,
-        fileName,
-        summary,
-        fileUrl: pdfUrl,
-      });
-      console.log("✅ Summary saved to database");
-    } catch (dbError) {
-      console.error("⚠️ Database save failed:", dbError);
-      // Continue anyway - user still gets the summary
-    }
-
-    return {
-      success: true,
-      message: "summary generated successfully",
+    console.log("💾 Saving to database...");
+    const saved = await db.pdfSummary.create({
       data: {
-        title: formattedFileName,
-        summary,
-      },
-    };
-  } catch (error) {
-    console.error("Error in generateSummary:", error);
-    return {
-      error: error instanceof Error ? error.message : "Unknown error",
-      success: false,
-      status: "bad",
-      msg: "Failed to process PDF",
-      data: null,
-    };
-  }
-}
-
-export async function storePDFSummary({
-  title,
-  fileName,
-  summary,
-  fileUrl,
-}: {
-  title: string;
-  fileName: string;
-  summary: string;
-  fileUrl: string;
-}) {
-  let savePDFSummary;
-  try {
-    const session = await auth();
-    const userId = session?.user?.id; // ✅ FIX: Added optional chaining
-
-    if (!userId) {
-      return {
-        success: false, // ✅ FIX: Fixed typo
-        msg: "User not authenticated",
-      };
-    }
-
-    console.log("Saving to database...");
-
-    savePDFSummary = await db.pdfSummary.create({
-      data: {
-        userId,
-        originalFileUrl: fileUrl,
+        user: {
+          connect: { id: session.user.id }, // ✅ FK SAFE
+        },
+        originalFileUrl: pdfUrl,
         summaryText: summary,
         fileName,
         title,
-        status: "completed", // ✅ Added status field
+        status: "completed",
       },
     });
 
-    console.log("✅ Saved in DB:", savePDFSummary.id);
+    revalidatePath(`/summaries/${saved.id}`);
 
-    
+    console.log("✅ Saved summary:", saved.id);
+
+    return {
+      success: true,
+      data: {
+        id: saved.id,
+        title,
+        summary,
+      },
+    };
   } catch (error) {
-    console.error("❌ Error saving to database:", error);
+    console.error("❌ generateSummary error:", error);
     return {
       success: false,
-      msg: error instanceof Error ? error.message : "Error saving PDF Summary",
+      msg: error instanceof Error ? error.message : "Unknown error",
     };
-    }
-    
-    revalidatePath(`/summaries/${savePDFSummary.id}`)
-
-  return {
-    success: true,
-      msg: "Saved to database successfully",
-      data: {
-        id: savePDFSummary.id
-    }
-  };
+  }
 }

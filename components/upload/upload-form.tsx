@@ -1,96 +1,42 @@
 "use client";
 
 import React from "react";
-import UploadFormInput from "./upload-form-input";
-import { Toaster } from "@/components/ui/sonner";
-import { z } from "zod";
 import { UploadButton } from "@/app/utils/uploadthing";
+import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { generateSummary, storePDFSummary } from "@/actions/upload-action";
-import { useRouter } from "next/router";
-
-const schema = z.object({
-  file: z
-    .instanceof(File)
-    .refine((file) => file.size <= 20 * 1024 * 1024, {
-      message: "File size must be less than 20MB",
-    })
-    .refine((file) => file.type === "application/pdf", {
-      message: "Only PDF files are allowed",
-    }),
-});
+import { generateSummary } from "@/actions/upload-action";
+import { useRouter } from "next/navigation";
 
 const UploadForm = () => {
-
-  const router = useRouter()
-//   const { startUpload, routeConfig } = useUploadThing("pdfUploader", {
-//     onClientUploadComplete: (res: any) => {
-//       alert("Uploaded successfully!");
-//       console.log(res);
-//     },
-//     onUploadError: (error: any) => {
-//       alert(error.message);
-//     },
-//     onUploadBegin: ({ file }: any) => {
-//       console.log("Upload started:", file.name);
-//     },
-//   });
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    console.log('submitted')
-
-
-
-    try {
-
-      const formData = new FormData(e.currentTarget);
-      const file = formData.get("file") as File;
-
-      if (!file) return;
-
-      const validated = schema.safeParse({ file });
-      console.log(validated)
-
-      if (!validated.success) {
-        console.log(validated.error.flatten().fieldErrors.file?.[0]);
-        return;
-      }
-
-      // const res = await startUpload([file]);
-      // if (!res) {
-      //   console.log("something went wrong while uploading")
-      //   return 
-      // }
-    } catch (error) {
-      console.error("Upload failed:", error);
-      toast("Upload Failed")
-    }
-  };
+  const router = useRouter();
 
   return (
     <div className="flex flex-col gap-8 w-full max-w-2xl mx-auto">
       <Toaster />
-      {/* <UploadFormInput onSubmit={handleSubmit} /> */}
+
       <UploadButton
         endpoint="pdfUploader"
         onClientUploadComplete={async (res) => {
-          console.log("Files: ", res[0].serverData);
-          toast("upload completed");
-          console.log("just to chech: " + res)
-          const summary = await generateSummary([{ serverData: res[0].serverData }])
-          console.log("summary: " + summary)
-          //@ts-ignore
-          const {data = null, message = null} = summary || {}
-          if (data) {
-            toast("Saving PDF...") //@ts-ignore
-            const storeResult = await storePDFSummary({summary: summary?.data?.summary, fileName: res[0].serverData.file.name,fileUrl: res[0].serverData.file.url,title:summary?.data?.title});
-            toast("summary saved")
-            router.push(`/summaries/${storeResult.data?.id}`)
+          try {
+            toast("Upload completed");
+
+            const result = await generateSummary([
+              { serverData: res[0].serverData },
+            ]);
+
+            if (result?.success && result?.data?.id) {
+              toast("Summary saved");
+              router.push(`/summaries/${result.data.id}`);
+            } else {
+              toast.error(result?.msg || "Failed to save summary");
+            }
+          } catch (error) {
+            console.error(error);
+            toast.error("Something went wrong");
           }
         }}
         onUploadError={(error: Error) => {
-          toast.error(`ERROR! ${error.message}`);
+          toast.error(`Upload failed: ${error.message}`);
         }}
       />
     </div>

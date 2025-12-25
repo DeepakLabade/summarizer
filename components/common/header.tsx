@@ -1,55 +1,52 @@
-'use client'
+"use client";
+
 import { FileText } from "lucide-react";
 import Link from "next/link";
-import React from "react";
+import React, { useEffect } from "react";
 import NavLink from "./nav-link";
-import { signinAction } from "@/actions/auth-action";
 import { Button } from "../ui/button";
-import { useSession } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 
 const Header = () => {
-    const isLoggedIn = false
-    const session = useSession()
+  const { data: session, status } = useSession();
+
+  const isLoggedIn = status === "authenticated";
+
+  useEffect(() => {
+    console.log("Session:", session);
+  }, [session]);
 
   return (
-    <>
-      <nav className="container flex items-center justify-between py-4 lg:px-8 px-2 mx-auto">
-        <div className="flex lg:flex-1">
-          {/* {JSON.stringify(session.data?.user.id)} */}
-          <Link
-            href={"/"}
-            className="flex items-center gap-1 lg:gap-2 shrink-0"
-          >
-            <FileText className="w-5 h-5 lg:w-8 lg:h-8 text-gray-800 hover:rotate-12 transform transition duration-200 ease-in-out" />
-            <span className="font-extrabold lg:text-xl text-gray-900 font-mono">
-              Summarizer
-            </span>
-          </Link>
-        </div>
+    <nav className="container flex items-center justify-between py-4 lg:px-8 px-2 mx-auto">
+      {/* Logo */}
+      <div className="flex lg:flex-1">
+        <Link href="/" className="flex items-center gap-2 shrink-0">
+          <FileText className="w-6 h-6 lg:w-8 lg:h-8 text-gray-800 hover:rotate-12 transition" />
+          <span className="font-extrabold lg:text-xl text-gray-900 font-mono">
+            Summarizer
+          </span>
+        </Link>
+      </div>
 
-        <div className="flex lg:justify-center gap-4 lg:gap-12 lg:items-center">
-          {isLoggedIn && <NavLink href={"/dashboard"}>Your Summaries</NavLink>}
-        </div>
+      {/* Center Links */}
+      <div className="flex gap-6 items-center">
+        {isLoggedIn && <NavLink href="/dashboard">Your Summaries</NavLink>}
+      </div>
 
-        <div className="lg:justify-end flex lg:flex-1">
-          {!isLoggedIn ? (
-            <div className="flex lg:justify-end lg:flex-1">
-              <form action={signinAction}>
-                <Button>
-                  Sign In
-                </Button>
-              </form>
-            </div>
-          ) : (
-            <div>
-              <NavLink href={"/upload"}>Upload a PDF</NavLink>
-              <div>pro</div>
-              <button>User</button>
-            </div>
-          )}
-        </div>
-      </nav>
-    </>
+      {/* Right Actions */}
+      <div className="flex lg:flex-1 justify-end gap-4">
+        {!isLoggedIn ? (
+          <Button onClick={() => signIn("google")}>Sign In</Button>
+        ) : (
+          <>
+            <NavLink href="/upload">Upload PDF</NavLink>
+            <Button variant="outline" onClick={() => signOut()}>
+              Logout
+            </Button>
+          </>
+        )}
+      </div>
+    </nav>
   );
 };
 
